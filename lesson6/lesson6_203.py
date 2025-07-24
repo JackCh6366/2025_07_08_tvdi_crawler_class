@@ -1,14 +1,26 @@
 import asyncio
-import json
 from crawl4ai import (AsyncWebCrawler,
                       BrowserConfig,
                       CrawlerRunConfig,
                       CacheMode,
                       JsonCssExtractionStrategy,
                       SemaphoreDispatcher,RateLimiter,
-                      )
+                      CrawlerMonitor,
+                      DisplayMode)
 
-async def get_stock_data(urls)-> list[dict]:
+async def main():
+    urls = [
+        "https://www.wantgoo.com/stock/2330/technical-chart",
+        "https://www.wantgoo.com/stock/2317/technical-chart",
+        "https://www.wantgoo.com/stock/2454/technical-chart",
+        "https://www.wantgoo.com/stock/2303/technical-chart",
+        "https://www.wantgoo.com/stock/2412/technical-chart",
+        "https://www.wantgoo.com/stock/2884/technical-chart",
+        "https://www.wantgoo.com/stock/2881/technical-chart",
+        "https://www.wantgoo.com/stock/2308/technical-chart",
+        "https://www.wantgoo.com/stock/2337/technical-chart",
+        "https://www.wantgoo.com/stock/2882/technical-chart",
+    ] 
     #建立一個BrowserConfig,讓chromium的瀏覽器顯示
     #BrowserConfig實體
 
@@ -109,26 +121,10 @@ async def get_stock_data(urls)-> list[dict]:
             config=run_config,
             dispatcher=dispatcher,
             )
-    all_results:list[dict] = []
-    for result in results:
-        stack_data:list[dict] = json.loads(result.extracted_content)
-        all_results.append(stack_data[0])
 
-    return all_results
+    for result in results:
+        print(result.extracted_content)
 
 if __name__ == '__main__':
-    urls = [
-        "https://www.wantgoo.com/stock/2330/technical-chart",
-        "https://www.wantgoo.com/stock/2317/technical-chart",
-        "https://www.wantgoo.com/stock/2454/technical-chart",
-        "https://www.wantgoo.com/stock/2303/technical-chart",
-        "https://www.wantgoo.com/stock/2412/technical-chart",
-        "https://www.wantgoo.com/stock/2884/technical-chart",
-        "https://www.wantgoo.com/stock/2881/technical-chart",
-        "https://www.wantgoo.com/stock/2308/technical-chart",
-        "https://www.wantgoo.com/stock/2337/technical-chart",
-        "https://www.wantgoo.com/stock/2882/technical-chart",
-    ]
-    reuslts:list[dict] = asyncio.run(get_stock_data(urls=urls))
-    for stock in reuslts:
-        print(stock)
+    asyncio.run(main())
+    
