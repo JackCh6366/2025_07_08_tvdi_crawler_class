@@ -2,11 +2,12 @@ import asyncio
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, JsonCssExtractionStrategy
 
 async def main():
-    url = 'https://www.wantgoo.com/stock/2317/technical-chart'
+    url = 'https://www.wantgoo.com/stock/7819/technical-chart'
     #建立一個BrowserConfig,讓chromium的瀏覽器顯示
     #BrowserConfig實體
+
     browser_config = BrowserConfig(
-        headless=False
+        headless=True
     )
     stock_schema = {
         "name": "StockInfo",
@@ -78,7 +79,7 @@ async def main():
     run_config = CrawlerRunConfig(
         wait_for_images=True,  # 等待圖片載入
         scan_full_page=True,  # 掃描整個頁面
-        scroll_delay=1,     # 滾動步驟之間的延遲（秒)
+        scroll_delay=0.5,     # 滾動步驟之間的延遲（秒)
         #想要在`class="my-drawer-toggle-btn"`的元素上點擊
         #js_code=["document.querySelector('.my-drawer-toggle-btn').click();"],
         cache_mode=CacheMode.BYPASS,
@@ -94,3 +95,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+    

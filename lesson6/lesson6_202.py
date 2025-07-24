@@ -1,12 +1,31 @@
 import asyncio
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, JsonCssExtractionStrategy
+from crawl4ai import (AsyncWebCrawler,
+                      BrowserConfig,
+                      CrawlerRunConfig,
+                      CacheMode,
+                      JsonCssExtractionStrategy,
+                      SemaphoreDispatcher,RateLimiter,
+                      CrawlerMonitor,
+                      DisplayMode)
 
 async def main():
-    url = 'https://www.wantgoo.com/stock/6763/technical-chart'
-    #建立一個BrowserConfig,讓chromium的瀏覽器顯示
+    urls = [
+        "https://www.wantgoo.com/stock/2330/technical-chart",
+        "https://www.wantgoo.com/stock/2317/technical-chart"
+        "https://www.wantgoo.com/stock/7819/technical-chart"
+        "https://www.wantgoo.com/stock/6763/technical-chart"
+        "https://www.wantgoo.com/stock/3687/technical-chart"
+        "https://www.wantgoo.com/stock/3008/technical-chart",
+        "https://www.wantgoo.com/stock/2303/technical-chart"
+        "https://www.wantgoo.com/stock/2356/technical-chart"
+        "https://www.wantgoo.com/stock/2382/technical-chart"
+        "https://www.wantgoo.com/stock/2646/technical-chart"
+    ] 
+  #建立一個BrowserConfig,讓chromium的瀏覽器顯示
     #BrowserConfig實體
+
     browser_config = BrowserConfig(
-        headless=False
+        headless=True
     )
     stock_schema = {
         "name": "StockInfo",
@@ -78,19 +97,34 @@ async def main():
     run_config = CrawlerRunConfig(
         wait_for_images=True,  # 等待圖片載入
         scan_full_page=True,  # 掃描整個頁面
-        scroll_delay=0.5,     # 滾動步驟之間的延遲（秒)
+        scroll_delay=3,     # 滾動步驟之間的延遲（秒)
         #想要在`class="my-drawer-toggle-btn"`的元素上點擊
         #js_code=["document.querySelector('.my-drawer-toggle-btn').click();"],
         cache_mode=CacheMode.BYPASS,
         extraction_strategy=JsonCssExtractionStrategy(stock_schema),
         verbose=True
     )
+
+    dispatcher = SemaphoreDispatcher(
+        semaphore_count=5,
+        rate_limiter=RateLimiter(
+            base_delay=(1.5, 2.0),
+            max_delay=30.0
+        )
+    )
+
     # 使用AsyncWebCrawler的實體來爬取網頁
     # 加入run_config參數
     async with AsyncWebCrawler(config=browser_config) as crawler:
-        result = await crawler.arun(url=url,config=run_config)
-    
-    print(result.extracted_content) 
+        results = await crawler.arun_many(
+            urls=urls,
+            config=run_config,
+            dispatcher=dispatcher,
+            )
+
+    for result in results:
+        print(result.extracted_content)
 
 if __name__ == '__main__':
     asyncio.run(main())
+    
