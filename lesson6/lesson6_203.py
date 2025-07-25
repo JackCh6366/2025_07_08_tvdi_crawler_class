@@ -12,7 +12,7 @@ async def main():
     urls = [
         "https://www.wantgoo.com/stock/2330/technical-chart",
         "https://www.wantgoo.com/stock/2356/technical-chart",
-        "https://www.wantgoo.com/stock/2482/technical-chart",
+        "https://www.wantgoo.com/stock/2382/technical-chart",
         "https://www.wantgoo.com/stock/2303/technical-chart",
         "https://www.wantgoo.com/stock/3008/technical-chart",
         "https://www.wantgoo.com/stock/2646/technical-chart",
