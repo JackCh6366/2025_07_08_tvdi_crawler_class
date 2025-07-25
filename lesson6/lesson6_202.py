@@ -108,8 +108,8 @@ async def main():
     dispatcher = SemaphoreDispatcher(
         semaphore_count=5,
         rate_limiter=RateLimiter(
-            base_delay=(1.5, 2.0),
-            max_delay=30.0
+            base_delay=(0.5, 1.0),
+            max_delay=10.0
         )
     )
 
