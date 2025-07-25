@@ -11,15 +11,16 @@ from crawl4ai import (AsyncWebCrawler,
 async def main():
     urls = [
         "https://www.wantgoo.com/stock/2330/technical-chart",
-        "https://www.wantgoo.com/stock/2317/technical-chart",
-        "https://www.wantgoo.com/stock/2454/technical-chart",
+        "https://www.wantgoo.com/stock/2356/technical-chart",
+        "https://www.wantgoo.com/stock/2482/technical-chart",
         "https://www.wantgoo.com/stock/2303/technical-chart",
-        "https://www.wantgoo.com/stock/2412/technical-chart",
-        "https://www.wantgoo.com/stock/2884/technical-chart",
-        "https://www.wantgoo.com/stock/2881/technical-chart",
-        "https://www.wantgoo.com/stock/2308/technical-chart",
-        "https://www.wantgoo.com/stock/2337/technical-chart",
-        "https://www.wantgoo.com/stock/2882/technical-chart",
+        "https://www.wantgoo.com/stock/3008/technical-chart",
+        "https://www.wantgoo.com/stock/2646/technical-chart",
+        "https://www.wantgoo.com/stock/2603/technical-chart",
+        "https://www.wantgoo.com/stock/7819/technical-chart",
+        "https://www.wantgoo.com/stock/6763/technical-chart",
+        "https://www.wantgoo.com/stock/6878/technical-chart",
+        "https://www.wantgoo.com/stock/3687/technical-chart",
     ] 
     #建立一個BrowserConfig,讓chromium的瀏覽器顯示
     #BrowserConfig實體
