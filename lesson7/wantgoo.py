@@ -11,8 +11,26 @@ from crawl4ai import (AsyncWebCrawler,
                       )
 
 async def get_stock_data(urls)-> list[dict]:
-    #建立一個BrowserConfig,讓chromium的瀏覽器顯示
-    #BrowserConfig實體
+    """
+    非同步地從一組網址列表抓取股票資料，使用無頭的Chromium瀏覽器。
+
+    此函式利用非同步網頁爬蟲，搭配自訂的瀏覽器與執行設定，
+    擷取如日期時間、股票代碼、名稱、即時價格、漲跌、漲跌百分比、
+    開盤價、最高價、成交量、最低價、前一日收盤價等資訊。
+    資料擷取依據 schema 中定義的 CSS 選擇器。
+
+    參數:
+        urls (list[str]): 要抓取股票資料的網址列表。
+
+    回傳:
+        list[dict]: 每個網址對應一筆擷取到的股票資訊字典。
+
+    備註:
+        - 使用 SemaphoreDispatcher 控制並發數量與速率限制。
+        - 爬蟲會等待圖片載入、掃描整頁並滾動延遲。
+        - 擷取策略採用 JSON-CSS，依據 schema 設定。
+    """
+   
 
     browser_config = BrowserConfig(
         headless=True
@@ -120,6 +138,16 @@ async def get_stock_data(urls)-> list[dict]:
 
 
 def get_stocks_with_twstock()->list[dict]:
+    """
+    從 twstock 套件取得所有股票清單，並篩選出股票代碼以 '2' 開頭且長度為 4 的股票。
+
+    回傳:
+        list[dict]: 每筆資料包含以下欄位：
+            - 'code': 股票代碼 (str)
+            - 'name': 股票名稱 (str)
+            - 'market': 市場類型 (str)
+            - 'group': 產業類別 (str)
+    """
     # 取得所有股票清單
     stocks = twstock.codes
     
