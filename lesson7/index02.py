@@ -9,7 +9,7 @@ class SimpleApp:
         self.create_widgets()
 
     def create_widgets(self):
-        #建立一個標籤
+        
         self.label = tk.Label(self.root, text="即時股票資料", font=("Arial", 16, "bold"))
         self.label.pack(pady=20)
         
