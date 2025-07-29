@@ -163,7 +163,7 @@ def get_stocks_with_twstock()->list[dict]:
     return_list = []
     
     for item in stock_list:
-        # 只找尋股票代碼第1位數為2的股票,只要4個字元
+        # 只找尋股票代碼第1位數為2的股票(不輸入時會全出現),只要4個字元
         if item['code'].startswith('2') and len(item['code']) == 4:
             return_list.append(item)
     return return_list
