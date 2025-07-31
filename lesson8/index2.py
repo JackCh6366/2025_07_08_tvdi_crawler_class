@@ -17,7 +17,6 @@ class SimpleApp:
             print(f"取得股票資料時發生錯誤: {e}")
 
         self.selected_stocks: list[str] = []
-        self.filtered_stock_codes: list[dict] = self.stock_codes.copy()  # 用於搜尋過濾的股票清單
 
         self.create_widgets()
 
@@ -33,27 +32,6 @@ class SimpleApp:
         # left_title的文字靠左        
         left_title = tk.Label(root_left_frame, text="請選擇股票(可多選)", font=("Arial"), anchor="w", justify="left")
         left_title.pack(pady=(10,0), fill=tk.X,padx=10)
-
-        # 新增搜尋功能區域
-        search_frame = tk.Frame(root_left_frame)
-        search_frame.pack(pady=(5,10), padx=10, fill=tk.X)
-
-        # 搜尋標籤
-        search_label = tk.Label(search_frame, text="搜尋股票:", font=("Arial", 10))
-        search_label.pack(anchor="w")
-
-        # 搜尋輸入框和清除按鈕的容器
-        search_input_frame = tk.Frame(search_frame)
-        search_input_frame.pack(fill=tk.X, pady=(5,0))
-
-        # 搜尋輸入框
-        self.search_entry = tk.Entry(search_input_frame, font=("Arial", 10))
-        self.search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.search_entry.bind('<KeyRelease>', self.on_search)
-
-        # 清除搜尋按鈕
-        clear_search_button = tk.Button(search_input_frame, text="清除搜尋", command=self.clear_search)
-        clear_search_button.pack(side=tk.RIGHT, padx=(5,0))
 
         # 建立leftFrame來包含 listbox 和 scrollbar
         left_frame = tk.Frame(root_left_frame)
@@ -73,8 +51,13 @@ class SimpleApp:
         #抓取stock_listbox的選取事件
         self.stock_listbox.bind('<<ListboxSelect>>', self.on_stock_select)
         
-        # 初始化股票清單
-        self.populate_stock_list()
+        # 用一個 list 存原始股票資料，避免名稱有 '-' 造成 split 問題
+        self.stock_display_list = []
+        for stock in self.stock_codes:
+            display_text = f"{stock['code']} - {stock['name']}"
+            self.stock_display_list.append(stock)  # 保留原始 dict
+            self.stock_listbox.insert(tk.END, display_text)
+            
             
         self.stock_listbox.pack(side=tk.LEFT)
         self.scrollbar.config(command=self.stock_listbox.yview)
@@ -145,34 +128,8 @@ class SimpleApp:
 
     def on_stock_select(self, event=None):
         """當股票被選取時，更新右側顯示的資訊"""
-        # 取得當前在 listbox 中選取的股票
-        current_selected = [self.stock_display_list[i] for i in self.stock_listbox.curselection()]
-        
-        # 建立一個新的選取清單
-        new_selected_stocks = []
-        
-        # 先加入之前選取但不在當前顯示清單中的股票（這些股票被搜尋過濾掉了）
-        for prev_stock in self.selected_stocks:
-            is_in_current_display = False
-            for display_stock in self.stock_display_list:
-                if prev_stock['code'] == display_stock['code']:
-                    is_in_current_display = True
-                    break
-            if not is_in_current_display:
-                new_selected_stocks.append(prev_stock)
-        
-        # 再加入當前在 listbox 中選取的股票
-        for current_stock in current_selected:
-            # 避免重複加入
-            is_already_selected = False
-            for selected_stock in new_selected_stocks:
-                if current_stock['code'] == selected_stock['code']:
-                    is_already_selected = True
-                    break
-            if not is_already_selected:
-                new_selected_stocks.append(current_stock)
-        
-        self.selected_stocks = new_selected_stocks
+        # 直接用 index 取得原始 dict
+        self.selected_stocks = [self.stock_display_list[i] for i in self.stock_listbox.curselection()]
         self.selected_button.config(text=f"選取的股票數量是:{len(self.selected_stocks)}筆")
         if len(self.selected_stocks) == 0:
             self.selected_button.config(state=tk.DISABLED)
@@ -220,61 +177,6 @@ class SimpleApp:
         self.stock_listbox.selection_clear(0, tk.END)
         self.selected_stocks = []
         self.selected_button.config(text="選取的股票數量是0筆", state=tk.DISABLED)
-
-    def populate_stock_list(self):
-        """填充股票清單到 listbox"""
-        # 清空現有的清單
-        self.stock_listbox.delete(0, tk.END)
-        
-        # 用一個 list 存原始股票資料，避免名稱有 '-' 造成 split 問題
-        self.stock_display_list = []
-        for stock in self.filtered_stock_codes:
-            display_text = f"{stock['code']} - {stock['name']}"
-            self.stock_display_list.append(stock)  # 保留原始 dict
-            self.stock_listbox.insert(tk.END, display_text)
-
-    def on_search(self, event=None):
-        """搜尋股票 - 每按一個字就執行搜尋"""
-        search_text = self.search_entry.get().strip().lower()
-        
-        if not search_text:
-            # 如果搜尋框為空，顯示所有股票
-            self.filtered_stock_codes = self.stock_codes.copy()
-        else:
-            # 根據股票代碼或名稱進行搜尋
-            self.filtered_stock_codes = []
-            for stock in self.stock_codes:
-                code = stock['code'].lower()
-                name = stock['name'].lower()
-                if search_text in code or search_text in name:
-                    self.filtered_stock_codes.append(stock)
-        
-        # 重新填充股票清單
-        self.populate_stock_list()
-        
-        # 搜尋後恢復之前選取的股票
-        self.restore_selection()
-
-    def clear_search(self):
-        """清除搜尋 - 不清除已選取的股票"""
-        self.search_entry.delete(0, tk.END)
-        self.filtered_stock_codes = self.stock_codes.copy()
-        self.populate_stock_list()
-        
-        # 重新選取之前已選的股票
-        self.restore_selection()
-
-    def restore_selection(self):
-        """恢復之前選取的股票"""
-        if not self.selected_stocks:
-            return
-            
-        # 找到已選股票在當前顯示清單中的位置並重新選取
-        for i, display_stock in enumerate(self.stock_display_list):
-            for selected_stock in self.selected_stocks:
-                if display_stock['code'] == selected_stock['code']:
-                    self.stock_listbox.selection_set(i)
-                    break
 
 
 
