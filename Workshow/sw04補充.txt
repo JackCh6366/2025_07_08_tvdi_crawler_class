@@ -1,0 +1,17 @@
+加入對 OpenWeatherMap API 的呼叫，它提供了免費的天氣資料。請注意，你需要先註冊一個帳號並取得一個 API Key，然後將其填入程式碼中的 YOUR_API_KEY 變數。
+
+此外，為了發送網路請求，你需要安裝 requests 這個 Python 套件。如果你尚未安裝，請在終端機中執行以下指令：
+
+pip install requests pytz
+我已經更新了你的 world_clock.py 檔案，加入了天氣資訊。
+
+
+這個版本增加了幾個關鍵的改變：
+
+API Key：程式碼中新增了一個 self.api_key 變數，你需要用你自己的金鑰來替換 YOUR_API_KEY。
+
+requests 函式庫：我們現在使用 requests 來向 OpenWeatherMap 伺服器發送請求。這是一個非常強大的網路請求函式庫。
+
+分離的更新機制：時鐘更新頻率很高（每 100 毫秒），但天氣資料不需要這麼頻繁地更新。因此，我將天氣更新邏輯分離到一個獨立的 update_weather 函數中，並設定為每 15 分鐘更新一次，以避免超過 API 的呼叫限制。
+
+多線程：為了確保在獲取天氣資料時，應用程式的介面不會凍結，我使用了 threading 模組來在背景執行網路請求。
