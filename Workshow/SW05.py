@@ -17,7 +17,7 @@ class WorldClockApp:
         # 檢查是否安裝必要的函式庫
         try:
             pytz.timezone('UTC')
-            requests.get("http://www.google.com", timeout=5) # 測試 requests
+            requests.get("https://www.google.com", timeout=5) # 測試 requests
             BeautifulSoup("<html></html>", "html.parser") # 測試 BeautifulSoup
         except Exception:
             messagebox.showerror("錯誤", "需要安裝必要的函式庫。請運行 'pip install requests pytz beautifulsoup4'")
@@ -26,16 +26,16 @@ class WorldClockApp:
         # 這裡不再需要 API Key
         self.api_key = None
 
-        # 設定時區、城市名稱、緯度和經度 (用於天氣 API)
+        # 設定時區與城市名稱
         self.clocks = {
-            "台灣": {"timezone": "Asia/Taipei", "lat": 25.0330, "lon": 121.5654},
-            "日本": {"timezone": "Asia/Tokyo", "lat": 35.6895, "lon": 139.6917},
-            "倫敦": {"timezone": "Europe/London", "lat": 51.5074, "lon": -0.1278},
-            "巴黎": {"timezone": "Europe/Paris", "lat": 48.8566, "lon": 2.3522},
-            "紐約": {"timezone": "America/New_York", "lat": 40.7128, "lon": -74.0060},
-            "溫哥華": {"timezone": "America/Vancouver", "lat": 49.2827, "lon": -123.1207},
-            "首爾": {"timezone": "Asia/Seoul", "lat": 37.5665, "lon": 126.9780},
-            "里斯本": {"timezone": "Europe/Lisbon", "lat": 38.7223, "lon": -9.1393}
+            "台北": {"timezone": "Asia/Taipei"},
+            "東京": {"timezone": "Asia/Tokyo"},
+            "倫敦": {"timezone": "Europe/London"},
+            "巴黎": {"timezone": "Europe/Paris"},
+            "紐約": {"timezone": "America/New_York"},
+            "溫哥華": {"timezone": "America/Vancouver"},
+            "首爾": {"timezone": "Asia/Seoul"},
+            "里斯本": {"timezone": "Europe/Lisbon"}
         }
 
         # 建立一個存放時間與天氣標籤的字典
@@ -52,11 +52,15 @@ class WorldClockApp:
         main_frame = tk.Frame(self.root, bg="#2c3e50")
         main_frame.pack(expand=True, fill=tk.BOTH)
 
+        # 重新整理按鈕
+        refresh_button = tk.Button(main_frame, text="重新整理", command=self.update_weather, bg="#3498db", fg="#ecf0f1", font=("Helvetica", 12))
+        refresh_button.pack(pady=10)
+
         title_font = font.Font(family="Helvetica", size=18, weight="bold")
         time_font = font.Font(family="Helvetica", size=14)
         weather_font = font.Font(family="Helvetica", size=12, slant="italic")
 
-        for city, data in self.clocks.items():
+        for city in self.clocks:
             city_frame = tk.Frame(main_frame, bg="#34495e", padx=10, pady=10)
             city_frame.pack(fill=tk.X, padx=20, pady=5)
             
@@ -90,55 +94,115 @@ class WorldClockApp:
 
         self.root.after(100, self.update_clocks)
 
-    def scrape_weather(self, city, url):
-        """從網站獲取指定城市的天氣資料 (網路爬蟲)"""
+    def scrape_weather(self, city, url, city_id=None):
+        """從網站獲取指定城市的天氣資料"""
         try:
-            # 這裡我們使用一個範例 URL。你必須將此替換為實際的天氣網站 URL。
             response = requests.get(url, timeout=10)
             response.raise_for_status()
+            js_content = response.text
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 這裡我們假設溫度和天氣狀況在特定的 HTML 標籤中。
-            # 這些選擇器 (.temperature, .weather-description) 必須根據你選擇的網站進行調整。
-            temp_element = soup.find(class_="temperature")
-            desc_element = soup.find(class_="weather-description")
+            if city_id:  # 處理台灣縣市
+                import ast
+                
+                # 尋找 TempArray_Week 物件的起始位置
+                start_str = 'var TempArray_Week = '
+                start_index = js_content.find(start_str)
+                
+                if start_index == -1:
+                    self.weather_labels[city].config(text="天氣資料格式錯誤")
+                    return
 
-            if temp_element and desc_element:
-                temp = temp_element.get_text().strip()
-                description = desc_element.get_text().strip()
-                weather_text = f"{description}, {temp}"
-                self.weather_labels[city].config(text=weather_text)
-            else:
-                self.weather_labels[city].config(text="無法解析天氣資料")
+                # 提取物件字串
+                obj_str = js_content[start_index + len(start_str):]
+                if obj_str.endswith(';'):
+                    obj_str = obj_str[:-1]
+
+                # 使用 ast.literal_eval 安全地解析
+                obj_str = obj_str.replace('null', 'None')
+                weather_data = ast.literal_eval(obj_str)
+                
+                city_weather = weather_data.get(city_id)
+                if city_weather and city_weather.get('C') and city_weather['C'].get('H') and city_weather.get('Wx'):
+                    temp = city_weather['C']['H'][0]
+                    description = city_weather['Wx'][0][1].strip()
+                    weather_text = f"{description}, {temp}°C"
+                    self.weather_labels[city].config(text=weather_text)
+                else:
+                    self.weather_labels[city].config(text="無法取得天氣")
+
+            else:  # 處理世界城市
+                import ast
+                import re
+
+                wid = re.search(r'WID=(\d+)', url).group(1)
+                js_url = f"https://www.cwa.gov.tw/Data/js/fcst/World/World_ChartData_Week_{wid}.js"
+                response = requests.get(js_url, timeout=10)
+                response.raise_for_status()
+                js_content = response.text
+                
+                # 尋找 ChartData 物件的起始位置
+                start_str = 'var ChartData='
+                start_index = js_content.find(start_str)
+
+                if start_index == -1:
+                    self.weather_labels[city].config(text="天氣資料格式錯誤")
+                    return
+                
+                # 提取物件字串
+                obj_str = js_content[start_index + len(start_str):]
+                if obj_str.endswith(';'):
+                    obj_str = obj_str[:-1]
+
+                # 使用 ast.literal_eval 安全地解析
+                weather_data = ast.literal_eval(obj_str)
+
+                if weather_data.get('MaxT_C'):
+                    temp = weather_data['MaxT_C'][0]
+                    description = self.get_weather_description_from_temp(temp)
+                    weather_text = f"{description}, {temp}°C"
+                    self.weather_labels[city].config(text=weather_text)
+                else:
+                    self.weather_labels[city].config(text="無法取得溫度")
 
         except requests.exceptions.RequestException as e:
             print(f"獲取 {city} 天氣資料失敗: {e}")
             self.weather_labels[city].config(text="天氣資料載入失敗")
         except Exception as e:
             print(f"解析 {city} 天氣資料時發生錯誤: {e}")
-            self.weather_labels[city].config(text="無法解析天氣資料")
+            self.weather_labels[city].config(text="天氣資料解析失敗")
+
+    def get_weather_description_from_temp(self, temp):
+        """根據溫度推斷天氣狀況"""
+        if temp >= 30:
+            return "炎熱"
+        elif 20 <= temp < 30:
+            return "溫暖"
+        elif 10 <= temp < 20:
+            return "涼爽"
+        else:
+            return "寒冷"
 
     def update_weather(self):
         """每15分鐘更新一次天氣資料"""
-        # 這裡我們使用一個範例 URL，你必須為每個城市找到對應的 URL
-        # 並且這些 URL 的 HTML 結構必須一致，才能使用相同的解析邏輯
         weather_urls = {
-            "台灣": "https://example.com/weather/taiwan",
-            "日本": "https://example.com/weather/japan",
-            "倫敦": "https://example.com/weather/london",
-            "巴黎": "https://example.com/weather/paris",
-            "紐約": "https://example.com/weather/new_york",
-            "溫哥華": "https://example.com/weather/vancouver",
-            "首爾": "https://example.com/weather/seoul",
-            "里斯本": "https://example.com/weather/lisbon"
+            "台北": {"url": "https://www.cwa.gov.tw/Data/js/week/ChartData_Week_County_C.js", "id": "63"},
+            "東京": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=AP&WID=47662"},
+            "倫敦": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=EA&WID=3770"},
+            "巴黎": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=EA&WID=7156"},
+            "紐約": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=AM&WID=74486"},
+            "溫哥華": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=AM&WID=71892"},
+            "首爾": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=AP&WID=47108"},
+            "里斯本": {"url": "https://www.cwa.gov.tw/V8/C/W/world.html?TYPE=EA&WID=8535"}
         }
             
-        for city, url in weather_urls.items():
-            # 使用線程來避免阻塞 UI 介面
-            thread = threading.Thread(target=self.scrape_weather, args=(city, url))
-            thread.daemon = True
-            thread.start()
+        for city, data in weather_urls.items():
+            url = data.get("url")
+            city_id = data.get("id")
+            if url:
+                # 使用線程來避免阻塞 UI 介面
+                thread = threading.Thread(target=self.scrape_weather, args=(city, url, city_id))
+                thread.daemon = True
+                thread.start()
         
         # 安排在 15 分鐘後再次呼叫此函數 (15 * 60 * 1000 毫秒)
         self.root.after(900000, self.update_weather)
