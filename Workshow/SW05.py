@@ -41,6 +41,8 @@ class WorldClockApp:
         # 建立一個存放時間與天氣標籤的字典
         self.time_labels = {}
         self.weather_labels = {}
+        self.is_paused = False
+        self.after_id = None
 
         self.create_widgets()
         
@@ -52,9 +54,17 @@ class WorldClockApp:
         main_frame = tk.Frame(self.root, bg="#2c3e50")
         main_frame.pack(expand=True, fill=tk.BOTH)
 
-        # 重新整理按鈕
-        refresh_button = tk.Button(main_frame, text="重新整理", command=self.update_weather, bg="#3498db", fg="#ecf0f1", font=("Helvetica", 12))
-        refresh_button.pack(pady=10)
+        # 按鈕框架
+        button_frame = tk.Frame(main_frame, bg="#2c3e50")
+        button_frame.pack(pady=10)
+
+        # 重新啟動按鈕
+        self.restart_button = tk.Button(button_frame, text="更新重啟", command=self.restart_updates, bg="#27ae60", fg="#ecf0f1", font=("Helvetica", 12))
+        self.restart_button.pack(side=tk.LEFT, padx=5)
+
+        # 暫停/繼續按鈕
+        self.pause_button = tk.Button(button_frame, text="暫停", command=self.toggle_pause, bg="#e67e22", fg="#ecf0f1", font=("Helvetica", 12))
+        self.pause_button.pack(side=tk.LEFT, padx=5)
 
         title_font = font.Font(family="Helvetica", size=18, weight="bold")
         time_font = font.Font(family="Helvetica", size=14)
@@ -79,6 +89,9 @@ class WorldClockApp:
 
     def update_clocks(self):
         """每100毫秒更新所有時鐘"""
+        if self.is_paused:
+            return
+
         now_utc = datetime.datetime.now(pytz.utc)
         
         for city, data in self.clocks.items():
@@ -92,7 +105,29 @@ class WorldClockApp:
                 print(f"更新 {city} 時間時發生錯誤: {e}")
                 self.time_labels[city].config(text="無法顯示時間")
 
-        self.root.after(100, self.update_clocks)
+        self.after_id = self.root.after(100, self.update_clocks)
+
+    def toggle_pause(self):
+        """暫停或繼續時間更新"""
+        self.is_paused = not self.is_paused
+        if self.is_paused:
+            self.pause_button.config(text="繼續")
+            if self.after_id:
+                self.root.after_cancel(self.after_id)
+        else:
+            self.pause_button.config(text="暫停")
+            self.update_clocks()
+
+    def restart_updates(self):
+        """重新啟動時間和天氣更新"""
+        if self.is_paused:
+            self.toggle_pause() # 如果是暫停狀態，先恢復
+        
+        self.update_weather()
+        # 確保時鐘在執行
+        if not self.is_paused and self.after_id is None:
+             self.update_clocks()
+
 
     def scrape_weather(self, city, url, city_id=None):
         """從網站獲取指定城市的天氣資料"""
